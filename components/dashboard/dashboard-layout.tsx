@@ -1,21 +1,13 @@
 "use client"
 
-import { Sidebar } from "./sidebar"
-import { Header } from "./header"
+import { AppLayout } from "@/components/organisms/app-layout"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
   userName: string
 }
 
+/** Wrapper de compatibilidad — delega al nuevo AppLayout */
 export function DashboardLayout({ children, userName }: DashboardLayoutProps) {
-  return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <div className="lg:pl-64">
-        <Header userName={userName} />
-        <main className="p-4 lg:p-6">{children}</main>
-      </div>
-    </div>
-  )
+  return <AppLayout userName={userName}>{children}</AppLayout>
 }

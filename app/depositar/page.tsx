@@ -8,193 +8,178 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { getDashboard, depositar, type Cuenta } from "@/lib/api"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getDashboard, registrarDepositoPendiente, type Cuenta, type DepositoPendiente } from "@/lib/api"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
-import { ArrowDownCircle, CheckCircle, Loader2 } from "lucide-react"
+import { ArrowDownCircle, Clock, Copy, Loader2 } from "lucide-react"
 
 export default function DepositarPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
-  const [selectedCuenta, setSelectedCuenta] = useState<string>("")
+  const [selectedCuenta, setSelectedCuenta] = useState("")
   const [monto, setMonto] = useState("")
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [nuevoSaldo, setNuevoSaldo] = useState(0)
+  const [resultado, setResultado] = useState<DepositoPendiente | null>(null)
+
+  const selectedCuentaData = cuentas.find((c) => c.id.toString() === selectedCuenta)
 
   useEffect(() => {
-    async function loadCuentas() {
-      const result = await getDashboard()
-
-      if (result.error) {
-        if (result.status === 401) {
-          router.push("/login")
-          return
-        }
-        toast.error(result.error)
-        setIsLoading(false)
-        return
+    getDashboard().then((r) => {
+      if (r.error) {
+        if (r.status === 401) { router.push("/login"); return }
+        toast.error(r.error)
+      } else if (r.data?.length) {
+        setCuentas(r.data)
+        setSelectedCuenta(r.data[0].id.toString())
       }
-
-      if (result.data && result.data.length > 0) {
-        setCuentas(result.data)
-        setSelectedCuenta(result.data[0].id.toString())
-      }
-
       setIsLoading(false)
-    }
-
-    loadCuentas()
+    })
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     const montoNum = parseFloat(monto)
     if (isNaN(montoNum) || montoNum < 0.01) {
       toast.error("El monto debe ser mayor a $0.01")
       return
     }
-
     setIsSubmitting(true)
-
-    const result = await depositar(parseInt(selectedCuenta), montoNum)
-
+    const result = await registrarDepositoPendiente(
+      selectedCuentaData!.numeroCuenta,
+      montoNum
+    )
     if (result.error) {
       toast.error(result.error)
-      setIsSubmitting(false)
     } else {
-      setNuevoSaldo(result.data?.nuevoSaldo || 0)
-      setShowSuccessModal(true)
-      setMonto("")
-      setIsSubmitting(false)
+      setResultado(result.data!)
     }
+    setIsSubmitting(false)
   }
 
-  const handleCloseModal = () => {
-    setShowSuccessModal(false)
-    router.push("/dashboard")
+  const copiar = (texto: string) => {
+    navigator.clipboard.writeText(texto)
+    toast.success("Referencia copiada")
   }
 
-  if (isLoading) {
-    return (
-      <DashboardLayout userName="Usuario">
-        <FormSkeleton />
-      </DashboardLayout>
-    )
-  }
+  if (isLoading) return <DashboardLayout userName="Usuario"><FormSkeleton /></DashboardLayout>
 
   return (
     <DashboardLayout userName="Usuario">
       <div className="mx-auto max-w-md space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/15 shadow-[0_0_20px_oklch(0.70_0.17_162/0.3)]">
             <ArrowDownCircle className="h-8 w-8 text-success" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Depositar</h1>
           <p className="text-muted-foreground">Agrega fondos a tu cuenta</p>
         </div>
 
-        <Card>
-          <form onSubmit={handleSubmit}>
+        {!resultado ? (
+          <Card className="border-border/50">
+            <form onSubmit={handleSubmit}>
+              <CardHeader>
+                <CardTitle>Registrar depósito</CardTitle>
+                <CardDescription>
+                  Se generará una referencia de depósito que debes presentar en ventanilla o pasarela de pago
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Cuenta destino</Label>
+                  <Select value={selectedCuenta} onValueChange={setSelectedCuenta}>
+                    <SelectTrigger className="bg-secondary border-border/50">
+                      <SelectValue placeholder="Selecciona una cuenta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cuentas.map((c) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {maskAccountNumber(c.numeroCuenta)} — {formatCurrency(c.saldo)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monto">Monto a depositar (COP)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                    <Input
+                      id="monto"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      className="pl-7 bg-secondary border-border/50"
+                      value={monto}
+                      onChange={(e) => setMonto(e.target.value)}
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-success to-emerald-600 hover:opacity-90"
+                  disabled={isSubmitting || !selectedCuenta}
+                >
+                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</> : "Generar referencia de depósito"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        ) : (
+          <Card className="border-success/30 bg-success/5">
             <CardHeader>
-              <CardTitle>Realizar depósito</CardTitle>
-              <CardDescription>
-                Selecciona la cuenta destino e ingresa el monto a depositar
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Cuenta destino</Label>
-                <Select value={selectedCuenta} onValueChange={setSelectedCuenta}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una cuenta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cuentas.map((cuenta) => (
-                      <SelectItem key={cuenta.id} value={cuenta.id.toString()}>
-                        {maskAccountNumber(cuenta.numeroCuenta)} - {formatCurrency(cuenta.saldo)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="monto">Monto a depositar</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    $
-                  </span>
-                  <Input
-                    id="monto"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0.00"
-                    className="pl-7"
-                    value={monto}
-                    onChange={(e) => setMonto(e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                  />
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/15">
+                  <Clock className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <CardTitle className="text-success">Depósito registrado</CardTitle>
+                  <CardDescription>Presenta esta referencia para completar el depósito</CardDescription>
                 </div>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border border-success/20 bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Referencia</span>
+                  <button onClick={() => copiar(resultado.referenciaGateway)} className="text-primary hover:text-accent">
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="font-mono text-lg font-bold text-foreground break-all">{resultado.referenciaGateway}</p>
+                <div className="h-px bg-border/50" />
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Estado</p>
+                    <p className="font-semibold text-foreground">{resultado.estado}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Tiempo restante</p>
+                    <p className="font-semibold text-foreground">{Math.floor(resultado.segundosRestantes / 60)} min</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                El depósito se acreditará automáticamente una vez confirmado por la pasarela
+              </p>
             </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full" disabled={isSubmitting || !selectedCuenta}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  "Depositar"
-                )}
+            <CardFooter className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setResultado(null)}>
+                Nuevo depósito
+              </Button>
+              <Button className="flex-1" onClick={() => router.push("/dashboard")}>
+                Ir al dashboard
               </Button>
             </CardFooter>
-          </form>
-        </Card>
+          </Card>
+        )}
       </div>
-
-      {/* Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
-              <CheckCircle className="h-10 w-10 text-success" />
-            </div>
-            <DialogTitle className="text-center">¡Depósito exitoso!</DialogTitle>
-            <DialogDescription className="text-center">
-              Tu depósito ha sido procesado correctamente
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 rounded-lg bg-muted p-4 text-center">
-            <p className="text-sm text-muted-foreground">Nuevo saldo</p>
-            <p className="text-2xl font-bold text-foreground">{formatCurrency(nuevoSaldo)}</p>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleCloseModal} className="w-full">
-              Volver al Dashboard
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   )
 }

@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { AccountCard } from "@/components/dashboard/account-card"
-import { QuickActions } from "@/components/dashboard/quick-actions"
-import { TransactionList } from "@/components/dashboard/transaction-list"
+import { BalanceCard } from "@/components/organisms/balance-card"
+import { QuickActionsBar } from "@/components/organisms/quick-actions-bar"
+import { TransactionPanel } from "@/components/organisms/transaction-panel"
 import { DashboardSkeleton } from "@/components/ui/loading-skeleton"
-import { getDashboard, getTransacciones, type Cuenta, type Transaccion } from "@/lib/api"
+import { getDashboard, getTransacciones, getPerfil, type Cuenta, type Transaccion } from "@/lib/api"
 import { toast } from "@/components/ui/sonner"
 
 export default function DashboardPage() {
@@ -19,7 +19,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadData() {
-      const cuentasResult = await getDashboard()
+      const [cuentasResult, perfilResult] = await Promise.all([
+        getDashboard(),
+        getPerfil(),
+      ])
 
       if (cuentasResult.error) {
         if (cuentasResult.status === 401) {
@@ -31,18 +34,14 @@ export default function DashboardPage() {
         return
       }
 
+      if (perfilResult.data?.nombre) {
+        setUserName(perfilResult.data.nombre)
+      }
+
       if (cuentasResult.data && cuentasResult.data.length > 0) {
         setCuentas(cuentasResult.data)
-
-        // Get transactions for the first account
         const transResult = await getTransacciones(cuentasResult.data[0].id)
-        if (transResult.data) {
-          setTransacciones(transResult.data.slice(0, 5))
-        }
-
-        // Try to get user name from profile (endpoint may not exist yet)
-        // For now, use a placeholder
-        setUserName("Usuario")
+        if (transResult.data) setTransacciones(transResult.data.slice(0, 5))
       }
 
       setIsLoading(false)
@@ -50,10 +49,6 @@ export default function DashboardPage() {
 
     loadData()
   }, [router])
-
-  const handleViewAll = () => {
-    router.push("/movimientos")
-  }
 
   if (isLoading) {
     return (
@@ -66,27 +61,27 @@ export default function DashboardPage() {
   return (
     <DashboardLayout userName={userName}>
       <div className="space-y-6">
-        {/* Account Cards */}
+        {/* Balance cards */}
         {cuentas.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {cuentas.map((cuenta) => (
-              <AccountCard key={cuenta.id} cuenta={cuenta} />
+              <BalanceCard key={cuenta.id} cuenta={cuenta} />
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-border bg-card p-8 text-center">
+          <div className="rounded-2xl border border-border/50 bg-card p-8 text-center">
             <p className="text-muted-foreground">No tienes cuentas asociadas</p>
           </div>
         )}
 
-        {/* Quick Actions */}
-        <QuickActions />
+        {/* Quick actions */}
+        <QuickActionsBar />
 
-        {/* Recent Transactions */}
-        <TransactionList
+        {/* Recent transactions */}
+        <TransactionPanel
           transactions={transacciones}
           showViewAll={transacciones.length > 0}
-          onViewAll={handleViewAll}
+          onViewAll={() => router.push("/movimientos")}
         />
       </div>
     </DashboardLayout>

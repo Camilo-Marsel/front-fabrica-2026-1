@@ -35,29 +35,35 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="relative min-h-screen flex items-center justify-center bg-background p-4 overflow-hidden">
+      {/* glow blobs */}
+      <div className="pointer-events-none absolute left-1/4 top-1/4 h-72 w-72 rounded-full bg-primary/15 blur-[80px]" />
+      <div className="pointer-events-none absolute bottom-1/4 right-1/4 h-60 w-60 rounded-full bg-accent/10 blur-[70px]" />
+
+      <div className="relative z-10 w-full max-w-sm space-y-8">
         {/* Logo */}
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex items-center gap-3">
-            <Building2 className="h-10 w-10 text-accent" />
-            <h1 className="text-2xl font-bold text-primary">Fábrica Escuela</h1>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-[0_0_28px_oklch(0.585_0.233_277/0.5)]">
+            <Building2 className="h-7 w-7 text-white" />
           </div>
-          <p className="text-muted-foreground">Tu banca digital de confianza</p>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Fábrica Escuela</h1>
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary">Banco Digital</p>
+          </div>
         </div>
 
         {/* Login Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Iniciar sesión</CardTitle>
-            <CardDescription>
-              Ingresa tus credenciales para acceder a tu cuenta
-            </CardDescription>
+        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Bienvenido de nuevo</CardTitle>
+            <CardDescription>Ingresa tus credenciales para continuar</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="username" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Usuario
+                </Label>
                 <Input
                   id="username"
                   type="text"
@@ -66,35 +72,43 @@ export default function LoginPage() {
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
                   disabled={isLoading}
+                  className="bg-secondary border-border/50 focus-visible:ring-primary"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Contraseña
+                </Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Tu contraseña"
+                  placeholder="••••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   disabled={isLoading}
+                  className="bg-secondary border-border/50 focus-visible:ring-primary"
                 />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-primary to-accent shadow-[0_4px_20px_oklch(0.585_0.233_277/0.4)] hover:opacity-90 transition-opacity"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Ingresando...
                   </>
                 ) : (
-                  "Ingresar"
+                  "Ingresar →"
                 )}
               </Button>
               <p className="text-sm text-muted-foreground">
                 ¿Eres nuevo?{" "}
-                <Link href="/registro/identidad" className="font-medium text-accent hover:underline">
+                <Link href="/registro/identidad" className="font-semibold text-primary hover:text-accent transition-colors">
                   Regístrate aquí
                 </Link>
               </p>

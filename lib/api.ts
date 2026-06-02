@@ -56,6 +56,54 @@ export type RegistroData = {
   password: string
 }
 
+export type DepositoPendiente = {
+  referenciaGateway: string
+  fechaExpiracion: string
+  segundosRestantes: number
+  estado: string
+}
+
+export type TokenRetiro = {
+  codigo: string
+  monto: number
+  segundosRestantes: number
+}
+
+export type TransferenciaInterbancaria = {
+  idTransaccion: number
+  referenciaExterna: string
+  monto: number
+  saldoResultante: number
+  estado: string
+  fecha: string
+  mensaje: string
+}
+
+export type TransferenciaInternacional = {
+  idTransfInt: number
+  referenciaSwift: string
+  montoUsd: number
+  montoCop: number
+  tasaCambio: number
+  estado: string
+  fecha: string
+  mensaje: string
+}
+
+export type Extracto = {
+  numeroCuentaEnmascarado: string
+  tipoCuenta: string
+  nombreTitular: string
+  documento: string
+  anio: number
+  mes: number
+  saldoInicial: number
+  saldoFinal: number
+  totalCreditos: number
+  totalDebitos: number
+  movimientos: Transaccion[]
+}
+
 // ── Session marker (readable by middleware — no es el JWT) ──────────────────
 
 function setSessionCookie() {
@@ -121,6 +169,10 @@ export function updatePerfil(data: { email: string; telefono: string }) {
   })
 }
 
+export function getMiRol() {
+  return apiFetch<{ rol: string }>("/api/v1/clientes/me/rol")
+}
+
 // ── Cuentas ──────────────────────────────────────────────────────────────────
 
 type CuentaResumenDTO = {
@@ -147,6 +199,20 @@ export async function getDashboard(): Promise<ApiResult<Cuenta[]>> {
       etiquetaVisual: c.etiquetaVisual,
     })),
   }
+}
+
+export function abrirCuenta(tipoCuenta: "AHORROS" | "CORRIENTE") {
+  return apiFetch<CuentaResumenDTO>("/api/v1/cuentas/abrir", {
+    method: "POST",
+    body: JSON.stringify({ tipoCuenta }),
+  })
+}
+
+export function cerrarCuenta(idCuenta: number, contrasena: string) {
+  return apiFetch<{ mensaje: string }>("/api/v1/cuentas/cerrar", {
+    method: "PATCH",
+    body: JSON.stringify({ idCuenta, contrasena }),
+  })
 }
 
 // ── Transacciones ────────────────────────────────────────────────────────────
@@ -204,31 +270,134 @@ export async function getTransaccionesFiltro(
   }
 }
 
-export async function depositar(idCuenta: number, monto: number) {
-  const result = await apiFetch<TransaccionRespuestaDTO>("/api/v1/transacciones/depositar", {
-    method: "POST",
-    body: JSON.stringify({ idCuenta, monto }),
-  })
-  if (result.error) return result
-  return { data: { nuevoSaldo: Number(result.data?.saldoResultante ?? 0) } }
-}
-
-export async function retirar(idCuenta: number, monto: number) {
-  const result = await apiFetch<TransaccionRespuestaDTO>("/api/v1/transacciones/retirar", {
-    method: "POST",
-    body: JSON.stringify({ idCuenta, monto }),
-  })
-  if (result.error) return result
-  return { data: { nuevoSaldo: Number(result.data?.saldoResultante ?? 0) } }
-}
-
-export async function transferir(idCuentaOrigen: number, numeroCuentaDestino: string, monto: number) {
-  const result = await apiFetch<TransaccionRespuestaDTO>("/api/v1/transacciones/transferir", {
+export function transferir(idCuentaOrigen: number, numeroCuentaDestino: string, monto: number) {
+  return apiFetch<TransaccionRespuestaDTO>("/api/v1/transacciones/transferir", {
     method: "POST",
     body: JSON.stringify({ idCuentaOrigen, numeroCuentaDestino, monto }),
   })
+}
+
+// ── Depósito pendiente (flujo real del backend) ───────────────────────────────
+// El usuario registra un depósito con referencia; el gateway lo confirma después.
+
+export function registrarDepositoPendiente(
+  numeroCuenta: string,
+  monto: number,
+  referenciaGateway?: string
+) {
+  const ref = referenciaGateway ?? `DEP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+  return apiFetch<DepositoPendiente>("/api/v1/transacciones/deposito-pendiente", {
+    method: "POST",
+    body: JSON.stringify({ referenciaGateway: ref, numeroCuenta, monto }),
+  })
+}
+
+export function consultarDepositoPendiente(referencia: string) {
+  return apiFetch<DepositoPendiente>(`/api/v1/transacciones/deposito-pendiente/${referencia}`)
+}
+
+// ── Token de retiro (flujo real del backend) ──────────────────────────────────
+// El usuario genera un token OTP; lo usa en cajero/ventanilla.
+
+export function generarTokenRetiro(idCuenta: number, monto: number) {
+  return apiFetch<TokenRetiro>("/api/v1/token-retiro/generar", {
+    method: "POST",
+    body: JSON.stringify({ idCuenta, monto }),
+  })
+}
+
+export function consultarTokenRetiro(codigo: string) {
+  return apiFetch<{ codigo: string; estado: string; segundosRestantes: number }>(
+    `/api/v1/token-retiro/${codigo}`
+  )
+}
+
+// ── Transferencia interbancaria ───────────────────────────────────────────────
+
+export type SolicitudInterbancaria = {
+  idCuentaOrigen: number
+  bancoDestino: string
+  tipoCuentaDestino: string
+  numeroCuentaDestino: string
+  tipoDocumentoReceptor: string
+  numeroDocumentoReceptor: string
+  nombreReceptor: string
+  monto: number
+}
+
+export function transferirInterbancario(data: SolicitudInterbancaria) {
+  return apiFetch<TransferenciaInterbancaria>("/api/v1/transferencias/interbancarias", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export function consultarTransferenciaInterbancaria(idTransaccion: number) {
+  return apiFetch<TransferenciaInterbancaria>(`/api/v1/transferencias/interbancarias/${idTransaccion}`)
+}
+
+// ── Transferencia internacional ───────────────────────────────────────────────
+
+export type SolicitudInternacional = {
+  idCuentaOrigen: number
+  bancoDestino: string
+  codigoSwift: string
+  paisDestino: string
+  tipoCuentaDestino: string
+  ibanCuentaDestino: string
+  tipoDocumentoReceptor: string
+  numeroDocumentoReceptor: string
+  nombreReceptor: string
+  montoUsd: number
+  tasaCambio: number
+  moneda?: string
+}
+
+export function transferirInternacional(data: SolicitudInternacional) {
+  return apiFetch<TransferenciaInternacional>("/api/v1/transferencias/internacionales", {
+    method: "POST",
+    body: JSON.stringify({ ...data, moneda: "USD" }),
+  })
+}
+
+export function consultarTransferenciaInternacional(idTransfInt: number) {
+  return apiFetch<TransferenciaInternacional>(`/api/v1/transferencias/internacionales/${idTransfInt}`)
+}
+
+// ── Extracto ──────────────────────────────────────────────────────────────────
+
+export async function getExtracto(idCuenta: number, anio: number, mes: number): Promise<ApiResult<Extracto>> {
+  const result = await apiFetch<{
+    numeroCuentaEnmascarado: string
+    tipoCuenta: string
+    nombreTitular: string
+    documento: string
+    anio: number
+    mes: number
+    saldoInicial: number
+    saldoFinal: number
+    totalCreditos: number
+    totalDebitos: number
+    movimientos: MovimientoDTO[]
+  }>(`/api/v1/extractos/${idCuenta}/${anio}/${mes}`)
   if (result.error) return result
-  return { data: { nuevoSaldo: Number(result.data?.saldoResultante ?? 0) } }
+  const d = result.data!
+  return {
+    data: {
+      ...d,
+      saldoInicial: Number(d.saldoInicial),
+      saldoFinal: Number(d.saldoFinal),
+      totalCreditos: Number(d.totalCreditos),
+      totalDebitos: Number(d.totalDebitos),
+      movimientos: (d.movimientos ?? []).map((m, i) => ({
+        id: i,
+        fecha: m.fechaHora,
+        concepto: m.concepto,
+        tipo: m.concepto,
+        monto: Number(m.monto),
+      })),
+    },
+  }
 }
 
 // ── Seguridad ────────────────────────────────────────────────────────────────
