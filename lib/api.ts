@@ -82,11 +82,12 @@ export type TransferenciaInterbancaria = {
 }
 
 export type TransferenciaInternacional = {
-  idTransfInt: number
+  idTransaccion: number
   referenciaSwift: string
   montoUsd: number
   montoCop: number
   tasaCambio: number
+  saldoResultante: number
   estado: string
   fecha: string
   mensaje: string
@@ -458,6 +459,22 @@ export function rechazarAchDemo(idTransaccion: number) {
   return gatewayFetch<TransferenciaInterbancaria>(
     `/api/v1/transferencias/interbancarias/${idTransaccion}/rechazo-ach`,
     { motivoRechazo: "Rechazado modo demo" },
+    { "X-Gateway-Secret": GATEWAY_SECRET }
+  )
+}
+
+export function confirmarSwiftDemo(idTransaccion: number) {
+  return gatewayFetch<TransferenciaInternacional>(
+    `/api/v1/transferencias/internacionales/${idTransaccion}/confirmacion-swift`,
+    { referenciaConfirmacion: "SWIFT-DEMO-CONFIRMADO" },
+    { "X-Gateway-Secret": GATEWAY_SECRET }
+  )
+}
+
+export function rechazarSwiftDemo(idTransaccion: number) {
+  return gatewayFetch<TransferenciaInternacional>(
+    `/api/v1/transferencias/internacionales/${idTransaccion}/rechazo-swift`,
+    { motivo: "Rechazado modo demo" },
     { "X-Gateway-Secret": GATEWAY_SECRET }
   )
 }
