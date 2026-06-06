@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getDashboard, transferirInterbancario, type Cuenta, type SolicitudInterbancaria, type TransferenciaInterbancaria } from "@/lib/api"
+import { getDashboard, transferirInterbancario, confirmarAchDemo, rechazarAchDemo, type Cuenta, type SolicitudInterbancaria, type TransferenciaInterbancaria } from "@/lib/api"
 import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
-import { Banknote, CheckCircle, Loader2 } from "lucide-react"
+import { Banknote, CheckCircle, Loader2, Zap, XCircle } from "lucide-react"
 
 const BANCOS = ["Bancolombia", "Davivienda", "BBVA", "Banco de Bogotá", "Banco Popular", "Nequi", "Daviplata"]
 const TIPOS_CUENTA = ["AHORROS", "CORRIENTE"]
@@ -27,6 +27,7 @@ export default function TransferirInterbancarioPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [resultado, setResultado] = useState<TransferenciaInterbancaria | null>(null)
+  const [isDemoLoading, setIsDemoLoading] = useState(false)
   const [form, setForm] = useState<Omit<SolicitudInterbancaria, "idCuentaOrigen"> & { idCuentaOrigen: string }>({
     idCuentaOrigen: "",
     bancoDestino: "",
@@ -184,8 +185,42 @@ export default function TransferirInterbancarioPage() {
               <div className="flex justify-between"><span className="text-muted-foreground">Estado</span><span className="font-semibold text-warning">{resultado.estado}</span></div>
             </div>
           )}
+          <div className="px-1 pb-1 space-y-2">
+            <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modo Demo — simular red ACH</p>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 bg-gradient-to-r from-success to-emerald-600 hover:opacity-90"
+                disabled={isDemoLoading}
+                onClick={async () => {
+                  if (!resultado) return
+                  setIsDemoLoading(true)
+                  const r = await confirmarAchDemo(resultado.idTransaccion)
+                  if (r.error) toast.error(r.error)
+                  else { toast.success("ACH confirmado — transferencia exitosa"); setResultado(null); router.push("/dashboard") }
+                  setIsDemoLoading(false)
+                }}
+              >
+                {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Zap className="mr-1 h-4 w-4" />Confirmar ACH</>}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                disabled={isDemoLoading}
+                onClick={async () => {
+                  if (!resultado) return
+                  setIsDemoLoading(true)
+                  const r = await rechazarAchDemo(resultado.idTransaccion)
+                  if (r.error) toast.error(r.error)
+                  else { toast.error("ACH rechazado — saldo reversado"); setResultado(null) }
+                  setIsDemoLoading(false)
+                }}
+              >
+                <XCircle className="mr-1 h-4 w-4" />Rechazar ACH
+              </Button>
+            </div>
+          </div>
           <DialogFooter>
-            <Button className="w-full" onClick={() => router.push("/dashboard")}>Ir al dashboard</Button>
+            <Button variant="outline" className="w-full" onClick={() => router.push("/dashboard")}>Ir al dashboard</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

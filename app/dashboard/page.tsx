@@ -9,13 +9,30 @@ import { TransactionPanel } from "@/components/organisms/transaction-panel"
 import { DashboardSkeleton } from "@/components/ui/loading-skeleton"
 import { getDashboard, getTransacciones, getPerfil, type Cuenta, type Transaccion } from "@/lib/api"
 import { toast } from "@/components/ui/sonner"
+import { Button } from "@/components/ui/button"
+import { RefreshCw } from "lucide-react"
 
 export default function DashboardPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [transacciones, setTransacciones] = useState<Transaccion[]>([])
   const [userName, setUserName] = useState("Usuario")
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    const [cuentasResult] = await Promise.all([getDashboard()])
+    if (cuentasResult.data) {
+      setCuentas(cuentasResult.data)
+      if (cuentasResult.data.length > 0) {
+        const transResult = await getTransacciones(cuentasResult.data[0].id)
+        if (transResult.data) setTransacciones(transResult.data.slice(0, 5))
+      }
+      toast.success("Saldos actualizados")
+    }
+    setIsRefreshing(false)
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -63,10 +80,18 @@ export default function DashboardPage() {
       <div className="space-y-6">
         {/* Balance cards */}
         {cuentas.length > 0 ? (
+          <div>
+            <div className="flex justify-end mb-3">
+              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="gap-2 border-border/50">
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                Actualizar saldos
+              </Button>
+            </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {cuentas.map((cuenta) => (
               <BalanceCard key={cuenta.id} cuenta={cuenta} />
             ))}
+          </div>
           </div>
         ) : (
           <div className="rounded-2xl border border-border/50 bg-card p-8 text-center">

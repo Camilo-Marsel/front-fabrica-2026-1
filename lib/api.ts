@@ -1,4 +1,5 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"
+const GATEWAY_SECRET = process.env.NEXT_PUBLIC_GATEWAY_SECRET ?? ""
 
 type ApiResult<T> = { data?: T; error?: string; status?: number }
 
@@ -415,6 +416,50 @@ export function desbloquearCuenta(password: string) {
     method: "POST",
     body: JSON.stringify({ password }),
   })
+}
+
+// ── Demo gateway (simula pasarela/cajero/red ACH) ────────────────────────────
+
+async function gatewayFetch<T>(path: string, body: object, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...extraHeaders },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) return { error: data?.mensaje ?? data?.message ?? "Error inesperado", status: res.status }
+    return { data: data as T }
+  } catch {
+    return { error: "No se pudo conectar con el servidor", status: 0 }
+  }
+}
+
+export function confirmarDepositoDemo(numeroCuenta: string, monto: number, referenciaGateway: string) {
+  return gatewayFetch<{ mensaje: string }>("/api/v1/depositos/notificacion", {
+    numeroCuenta, monto, referenciaGateway, canalOrigen: "DEMO",
+  })
+}
+
+export function procesarRetiroDemo(codigoToken: string, monto: number) {
+  return gatewayFetch<{ mensaje: string }>("/api/v1/retiros/notificacion", { codigoToken, monto })
+}
+
+export function confirmarAchDemo(idTransaccion: number) {
+  return gatewayFetch<TransferenciaInterbancaria>(
+    `/api/v1/transferencias/interbancarias/${idTransaccion}/confirmacion-ach`,
+    { observacion: "Confirmado modo demo" },
+    { "X-Gateway-Secret": GATEWAY_SECRET }
+  )
+}
+
+export function rechazarAchDemo(idTransaccion: number) {
+  return gatewayFetch<TransferenciaInterbancaria>(
+    `/api/v1/transferencias/interbancarias/${idTransaccion}/rechazo-ach`,
+    { motivoRechazo: "Rechazado modo demo" },
+    { "X-Gateway-Secret": GATEWAY_SECRET }
+  )
 }
 
 // ── Registro ──────────────────────────────────────────────────────────────────

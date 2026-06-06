@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getDashboard, registrarDepositoPendiente, type Cuenta, type DepositoPendiente } from "@/lib/api"
+import { getDashboard, registrarDepositoPendiente, confirmarDepositoDemo, type Cuenta, type DepositoPendiente } from "@/lib/api"
 import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
-import { ArrowDownCircle, Clock, Copy, Loader2 } from "lucide-react"
+import { ArrowDownCircle, Clock, Copy, Loader2, Zap } from "lucide-react"
 
 export default function DepositarPage() {
   const router = useRouter()
@@ -24,6 +24,7 @@ export default function DepositarPage() {
   const [selectedCuenta, setSelectedCuenta] = useState("")
   const [monto, setMonto] = useState("")
   const [resultado, setResultado] = useState<DepositoPendiente | null>(null)
+  const [isConfirming, setIsConfirming] = useState(false)
 
   const selectedCuentaData = cuentas.find((c) => c.id.toString() === selectedCuenta)
 
@@ -63,6 +64,19 @@ export default function DepositarPage() {
   const copiar = (texto: string) => {
     navigator.clipboard.writeText(texto)
     toast.success("Referencia copiada")
+  }
+
+  const handleConfirmarDemo = async () => {
+    if (!resultado || !selectedCuentaData) return
+    setIsConfirming(true)
+    const r = await confirmarDepositoDemo(
+      selectedCuentaData.numeroCuenta,
+      parseFloat(monto),
+      resultado.referenciaGateway
+    )
+    if (r.error) toast.error(r.error)
+    else { toast.success("Depósito acreditado — modo demo"); setResultado(null); setMonto("") }
+    setIsConfirming(false)
   }
 
   if (isLoading) return <DashboardLayout userName={userName}><FormSkeleton /></DashboardLayout>
@@ -171,13 +185,24 @@ export default function DepositarPage() {
                 El depósito se acreditará automáticamente una vez confirmado por la pasarela
               </p>
             </CardContent>
-            <CardFooter className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setResultado(null)}>
-                Nuevo depósito
+            <CardFooter className="flex flex-col gap-3">
+              <Button
+                className="w-full bg-gradient-to-r from-success to-emerald-600 hover:opacity-90"
+                onClick={handleConfirmarDemo}
+                disabled={isConfirming}
+              >
+                {isConfirming
+                  ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Confirmando...</>
+                  : <><Zap className="mr-2 h-4 w-4" />Confirmar depósito (Demo)</>}
               </Button>
-              <Button className="flex-1" onClick={() => router.push("/dashboard")}>
-                Ir al dashboard
-              </Button>
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="flex-1" onClick={() => setResultado(null)}>
+                  Nuevo depósito
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => router.push("/dashboard")}>
+                  Dashboard
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         )}

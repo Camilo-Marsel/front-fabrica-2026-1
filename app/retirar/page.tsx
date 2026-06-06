@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getDashboard, generarTokenRetiro, type Cuenta, type TokenRetiro } from "@/lib/api"
+import { getDashboard, generarTokenRetiro, procesarRetiroDemo, type Cuenta, type TokenRetiro } from "@/lib/api"
 import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
-import { ArrowUpCircle, Copy, Loader2, ShieldCheck } from "lucide-react"
+import { ArrowUpCircle, Copy, Loader2, ShieldCheck, Zap } from "lucide-react"
 
 export default function RetirarPage() {
   const router = useRouter()
@@ -25,6 +25,7 @@ export default function RetirarPage() {
   const [monto, setMonto] = useState("")
   const [token, setToken] = useState<TokenRetiro | null>(null)
   const [segundos, setSegundos] = useState(0)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const selectedCuentaData = cuentas.find((c) => c.id.toString() === selectedCuenta)
 
@@ -66,6 +67,15 @@ export default function RetirarPage() {
 
   const copiar = () => {
     if (token) { navigator.clipboard.writeText(token.codigo); toast.success("Código copiado") }
+  }
+
+  const handleProcesarDemo = async () => {
+    if (!token) return
+    setIsProcessing(true)
+    const r = await procesarRetiroDemo(token.codigo, token.monto)
+    if (r.error) toast.error(r.error)
+    else { toast.success("Retiro procesado — modo demo"); setToken(null); setMonto("") }
+    setIsProcessing(false)
   }
 
   const minutos = Math.floor(segundos / 60)
@@ -192,13 +202,26 @@ export default function RetirarPage() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => { setToken(null); setMonto("") }}>
-                {expirado ? "Intentar de nuevo" : "Cancelar"}
-              </Button>
-              <Button className="flex-1" onClick={() => router.push("/dashboard")}>
-                Ir al dashboard
-              </Button>
+            <CardFooter className="flex flex-col gap-3">
+              {!expirado && (
+                <Button
+                  className="w-full bg-gradient-to-r from-warning to-amber-600 text-warning-foreground hover:opacity-90"
+                  onClick={handleProcesarDemo}
+                  disabled={isProcessing}
+                >
+                  {isProcessing
+                    ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>
+                    : <><Zap className="mr-2 h-4 w-4" />Procesar retiro (Demo)</>}
+                </Button>
+              )}
+              <div className="flex gap-3 w-full">
+                <Button variant="outline" className="flex-1" onClick={() => { setToken(null); setMonto("") }}>
+                  {expirado ? "Intentar de nuevo" : "Cancelar"}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => router.push("/dashboard")}>
+                  Dashboard
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         )}
