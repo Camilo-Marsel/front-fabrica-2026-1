@@ -5,13 +5,14 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   Building2, LayoutDashboard, Receipt, ArrowDownCircle, ArrowUpCircle,
   ArrowLeftRight, Banknote, Globe, FileText, CreditCard,
-  User, Shield, LogOut, Menu, X,
+  User, Shield, LogOut, Menu, X, ShieldCheck, Users, BarChart3,
 } from "lucide-react"
 import { NavItem } from "@/components/atoms/nav-item"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/lib/api"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { useUserRole, esAdmin } from "@/hooks/use-user-role"
 
 const NAV_ITEMS = [
   { href: "/dashboard",                label: "Dashboard",       icon: LayoutDashboard, group: "principal"   },
@@ -34,9 +35,16 @@ const GROUPS: { key: string; label: string }[] = [
   { key: "cuenta",      label: "Mi cuenta"   },
 ]
 
+const ADMIN_ITEMS = [
+  { href: "/admin/cuentas",   label: "Solicitudes",  icon: ShieldCheck },
+  { href: "/admin/clientes",  label: "Clientes",     icon: Users       },
+  { href: "/admin/reportes",  label: "Reportes",     icon: BarChart3   },
+]
+
 export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const role = useUserRole()
   const [isOpen, setIsOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -114,6 +122,27 @@ export function AppSidebar() {
               )
             })}
           </nav>
+
+          {/* Admin section */}
+          {esAdmin(role) && (
+            <div className="mb-3">
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/30">
+                Administración
+              </p>
+              <div className="space-y-0.5">
+                {ADMIN_ITEMS.map((item) => (
+                  <NavItem
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    isActive={pathname.startsWith(item.href)}
+                    onClick={() => setIsOpen(false)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Logout */}
           <div className="shrink-0 border-t border-sidebar-border p-3">

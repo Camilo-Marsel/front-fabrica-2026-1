@@ -419,6 +419,121 @@ export function desbloquearCuenta(password: string) {
   })
 }
 
+// ── Admin types ───────────────────────────────────────────────────────────────
+
+export type SolicitudPendiente = {
+  idCuenta: number
+  numeroCuenta: string
+  tipo: string
+  estado: string
+  nombreCliente: string
+  idCliente: number
+}
+
+export type DecisionApertura = {
+  idCuenta: number
+  numeroCuenta: string
+  estado: string
+  mensaje: string
+}
+
+export type MovimientoAdmin = {
+  idTransaccion: string
+  fechaHora: string
+  concepto: string
+  monto: number
+  saldoResultante: number
+  cuentaOrigen: string
+  cuentaDestino: string
+  estado: string
+}
+
+export type ClienteActividad = {
+  cliente: {
+    idCliente: number
+    nombre: string
+    documento: string
+    estadoCuenta: string
+    numeroCuenta: string
+    fechaVinculacion: string
+  }
+  movimientos: MovimientoAdmin[]
+  totalMovimientos: number
+}
+
+export type ReporteResumen = {
+  totalTransacciones: number
+  volumenTotal: number
+  transacciones: {
+    idMovimiento: string
+    fecha: string
+    concepto: string
+    monto: number
+    cuenta: string
+  }[]
+}
+
+function extractEmbedded<T>(data: unknown): T[] {
+  if (!data || typeof data !== "object") return []
+  const embedded = (data as Record<string, unknown>)._embedded
+  if (!embedded || typeof embedded !== "object") return []
+  const values = Object.values(embedded as Record<string, unknown>)
+  return (values[0] ?? []) as T[]
+}
+
+// ── Admin — cuentas ──────────────────────────────────────────────────────────
+
+export async function getCuentasPendientes(): Promise<ApiResult<SolicitudPendiente[]>> {
+  const r = await apiFetch<unknown>("/api/v1/admin/cuentas/pendientes")
+  if (r.error) return { error: r.error, status: r.status }
+  return { data: extractEmbedded<SolicitudPendiente>(r.data) }
+}
+
+export function aprobarCuenta(id: number) {
+  return apiFetch<DecisionApertura>(`/api/v1/admin/cuentas/${id}/aprobar`, { method: "PATCH" })
+}
+
+export function rechazarCuenta(id: number) {
+  return apiFetch<DecisionApertura>(`/api/v1/admin/cuentas/${id}/rechazar`, { method: "PATCH" })
+}
+
+// ── Admin — clientes ─────────────────────────────────────────────────────────
+
+export function buscarPorDocumento(documento: string) {
+  return apiFetch<ClienteActividad>(
+    `/api/v1/admin/clientes/buscar/documento?documento=${encodeURIComponent(documento)}`
+  )
+}
+
+export function buscarPorCuenta(numeroCuenta: string) {
+  return apiFetch<ClienteActividad>(
+    `/api/v1/admin/clientes/buscar/cuenta?numeroCuenta=${encodeURIComponent(numeroCuenta)}`
+  )
+}
+
+// ── Admin — reportes ─────────────────────────────────────────────────────────
+
+export function getReporte(inicio: string, fin: string) {
+  return apiFetch<ReporteResumen>(
+    `/api/v1/reportes?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`
+  )
+}
+
+export async function exportarCSV(inicio: string, fin: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/api/v1/reportes/csv?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`,
+    { credentials: "include" }
+  )
+  if (!res.ok) return
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = "reporte.csv"
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 // ── Demo gateway (simula pasarela/cajero/red ACH) ────────────────────────────
 
 async function gatewayFetch<T>(path: string, body: object, extraHeaders?: Record<string, string>): Promise<ApiResult<T>> {
