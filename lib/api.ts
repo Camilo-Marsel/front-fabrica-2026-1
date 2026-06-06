@@ -121,9 +121,17 @@ function clearSessionCookie() {
   }
 }
 
+function clearSessionCache() {
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("userName")
+    sessionStorage.removeItem("userRole")
+  }
+}
+
 // ── Auth ────────────────────────────────────────────────────────────────────
 
 export async function login(username: string, password: string) {
+  clearSessionCache()
   const result = await apiFetch<{ mensaje: string }>("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify({ username, password }),
@@ -135,6 +143,7 @@ export async function login(username: string, password: string) {
 export async function logout() {
   const result = await apiFetch<{ mensaje: string }>("/api/v1/auth/logout", { method: "POST" })
   clearSessionCookie()
+  clearSessionCache()
   return result
 }
 
