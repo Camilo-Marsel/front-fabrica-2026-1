@@ -111,7 +111,7 @@ export default function TransferirPage() {
       toast.error(result.error)
       setIsSubmitting(false)
     } else {
-      setNuevoSaldo(result.data?.nuevoSaldo || 0)
+      setNuevoSaldo(result.data?.saldoResultante || 0)
       setShowSuccessModal(true)
       setMonto("")
       setCuentaDestino("")
