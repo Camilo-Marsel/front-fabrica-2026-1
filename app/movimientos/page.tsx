@@ -30,12 +30,14 @@ import {
   type Cuenta,
   type Transaccion,
 } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, formatDate, maskAccountNumber, formatInputDate } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { Search } from "lucide-react"
 
 export default function MovimientosPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [isLoading, setIsLoading] = useState(true)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [transacciones, setTransacciones] = useState<Transaccion[]>([])
@@ -118,14 +120,14 @@ export default function MovimientosPage() {
 
   if (isLoading && cuentas.length === 0) {
     return (
-      <DashboardLayout userName="Usuario">
+      <DashboardLayout userName={userName}>
         <TransactionsSkeleton />
       </DashboardLayout>
     )
   }
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Movimientos</h1>

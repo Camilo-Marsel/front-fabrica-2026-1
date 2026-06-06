@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { registrar, type RegistroData } from "@/lib/api"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +31,7 @@ export default function DatosPage() {
     email: "",
     direccion: "",
     telefono: "",
+    genero: "" as "MASCULINO" | "FEMENINO" | "",
     username: "",
     password: "",
     confirmPassword: "",
@@ -58,6 +60,16 @@ export default function DatosPage() {
       return
     }
 
+    if (!/^\d{10}$/.test(formData.telefono)) {
+      toast.error("El teléfono debe tener exactamente 10 dígitos numéricos")
+      return
+    }
+
+    if (!formData.genero) {
+      toast.error("Selecciona un género")
+      return
+    }
+
     if (!identidadData) {
       toast.error("Error: datos de identidad no encontrados")
       return
@@ -68,6 +80,7 @@ export default function DatosPage() {
     const registroData: RegistroData = {
       documento: identidadData.documento,
       fechaExpedicion: identidadData.fechaExpedicion,
+      genero: formData.genero as "MASCULINO" | "FEMENINO",
       nombre: formData.nombre,
       email: formData.email,
       direccion: formData.direccion,
@@ -148,6 +161,22 @@ export default function DatosPage() {
                   required
                   disabled={isLoading}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="genero">Género</Label>
+                <Select
+                  value={formData.genero}
+                  onValueChange={(v) => setFormData({ ...formData, genero: v as "MASCULINO" | "FEMENINO" })}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="genero">
+                    <SelectValue placeholder="Selecciona tu género" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MASCULINO">Masculino</SelectItem>
+                    <SelectItem value="FEMENINO">Femenino</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="direccion">Dirección</Label>

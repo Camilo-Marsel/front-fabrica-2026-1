@@ -48,6 +48,7 @@ export type Transaccion = {
 export type RegistroData = {
   documento: string
   fechaExpedicion: string
+  genero: "MASCULINO" | "FEMENINO"
   nombre: string
   email: string
   direccion: string

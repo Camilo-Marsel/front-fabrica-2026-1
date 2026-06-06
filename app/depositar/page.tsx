@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getDashboard, registrarDepositoPendiente, type Cuenta, type DepositoPendiente } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { ArrowDownCircle, Clock, Copy, Loader2 } from "lucide-react"
 
 export default function DepositarPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
@@ -63,10 +65,10 @@ export default function DepositarPage() {
     toast.success("Referencia copiada")
   }
 
-  if (isLoading) return <DashboardLayout userName="Usuario"><FormSkeleton /></DashboardLayout>
+  if (isLoading) return <DashboardLayout userName={userName}><FormSkeleton /></DashboardLayout>
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="mx-auto max-w-md space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/15 shadow-[0_0_20px_oklch(0.70_0.17_162/0.3)]">

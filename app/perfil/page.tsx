@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getPerfil, updatePerfil } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { toast } from "@/components/ui/sonner"
 import { User, Loader2, Save } from "lucide-react"
 
@@ -21,6 +22,7 @@ interface PerfilData {
 
 export default function PerfilPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [perfil, setPerfil] = useState<PerfilData | null>(null)
@@ -88,14 +90,14 @@ export default function PerfilPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout userName="Usuario">
+      <DashboardLayout userName={userName}>
         <FormSkeleton />
       </DashboardLayout>
     )
   }
 
   return (
-    <DashboardLayout userName={perfil?.nombre || "Usuario"}>
+    <DashboardLayout userName={userName}>
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">

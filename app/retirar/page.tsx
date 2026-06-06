@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getDashboard, generarTokenRetiro, type Cuenta, type TokenRetiro } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { ArrowUpCircle, Copy, Loader2, ShieldCheck } from "lucide-react"
 
 export default function RetirarPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
@@ -70,10 +72,10 @@ export default function RetirarPage() {
   const segs = segundos % 60
   const expirado = segundos <= 0
 
-  if (isLoading) return <DashboardLayout userName="Usuario"><FormSkeleton /></DashboardLayout>
+  if (isLoading) return <DashboardLayout userName={userName}><FormSkeleton /></DashboardLayout>
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="mx-auto max-w-md space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-warning/15">

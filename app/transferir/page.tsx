@@ -34,12 +34,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { getDashboard, transferir, type Cuenta } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { ArrowLeftRight, CheckCircle, Loader2 } from "lucide-react"
 
 export default function TransferirPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
@@ -124,14 +126,14 @@ export default function TransferirPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout userName="Usuario">
+      <DashboardLayout userName={userName}>
         <FormSkeleton />
       </DashboardLayout>
     )
   }
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="mx-auto max-w-md space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">

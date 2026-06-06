@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getDashboard, getExtracto, type Cuenta, type Extracto } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { FileText, Loader2 } from "lucide-react"
@@ -17,6 +18,7 @@ const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto"
 
 export default function ExtractoPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [selectedCuenta, setSelectedCuenta] = useState("")
   const [anio, setAnio] = useState(new Date().getFullYear().toString())
@@ -45,7 +47,7 @@ export default function ExtractoPage() {
   }
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">

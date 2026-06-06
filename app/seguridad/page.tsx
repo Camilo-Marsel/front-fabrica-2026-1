@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { getDashboard, bloquearCuenta, desbloquearCuenta, type Cuenta } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { Shield, Lock, Unlock, Loader2, AlertTriangle, CheckCircle } from "lucide-react"
@@ -25,6 +26,7 @@ type ActionType = "bloquear" | "desbloquear" | null
 
 export default function SeguridadPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [isLoading, setIsLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
@@ -100,14 +102,14 @@ export default function SeguridadPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout userName="Usuario">
+      <DashboardLayout userName={userName}>
         <FormSkeleton />
       </DashboardLayout>
     )
   }
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">

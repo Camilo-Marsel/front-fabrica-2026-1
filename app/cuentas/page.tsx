@@ -11,18 +11,21 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { getDashboard, abrirCuenta, cerrarCuenta, type Cuenta } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
-import { CreditCard, PlusCircle, XCircle, Loader2 } from "lucide-react"
+import { CreditCard, PlusCircle, XCircle, Loader2, Eye, EyeOff, Copy } from "lucide-react"
 
 export default function CuentasPage() {
   const router = useRouter()
+  const userName = useUserName()
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [tipoCuenta, setTipoCuenta] = useState<"AHORROS" | "CORRIENTE">("AHORROS")
   const [cuentaACerrar, setCuentaACerrar] = useState<Cuenta | null>(null)
   const [contrasena, setContrasena] = useState("")
+  const [numerosVisibles, setNumerosVisibles] = useState<Set<number>>(new Set())
 
   const cargarCuentas = async () => {
     const r = await getDashboard()
@@ -52,7 +55,7 @@ export default function CuentasPage() {
   }
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
@@ -74,6 +77,38 @@ export default function CuentasPage() {
             {cuentas.map((c) => (
               <div key={c.id} className="space-y-2">
                 <BalanceCard cuenta={c} />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-border/50 text-xs"
+                    onClick={() => {
+                      setNumerosVisibles((prev) => {
+                        const next = new Set(prev)
+                        next.has(c.id) ? next.delete(c.id) : next.add(c.id)
+                        return next
+                      })
+                    }}
+                  >
+                    {numerosVisibles.has(c.id) ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}
+                    {numerosVisibles.has(c.id) ? "Ocultar" : "Ver número"}
+                  </Button>
+                  {numerosVisibles.has(c.id) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-border/50 text-xs"
+                      onClick={() => { navigator.clipboard.writeText(c.numeroCuenta); toast.success("Número copiado") }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+                {numerosVisibles.has(c.id) && (
+                  <p className="rounded-lg bg-muted px-3 py-2 text-center font-mono text-sm font-medium tracking-widest">
+                    {c.numeroCuenta}
+                  </p>
+                )}
                 {c.estado === "ACTIVA" && (
                   <Button
                     variant="outline"

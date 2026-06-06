@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getDashboard, transferirInterbancario, type Cuenta, type SolicitudInterbancaria, type TransferenciaInterbancaria } from "@/lib/api"
+import { useUserName } from "@/hooks/use-user-name"
 import { formatCurrency, maskAccountNumber } from "@/lib/format"
 import { toast } from "@/components/ui/sonner"
 import { Banknote, CheckCircle, Loader2 } from "lucide-react"
@@ -20,6 +21,7 @@ const TIPOS_CUENTA = ["AHORROS", "CORRIENTE"]
 const TIPOS_DOC = ["CC", "CE", "NIT", "PASAPORTE"]
 
 export default function TransferirInterbancarioPage() {
+  const userName = useUserName()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -63,10 +65,10 @@ export default function TransferirInterbancarioPage() {
 
   const selectedCuenta = cuentas.find((c) => c.id.toString() === form.idCuentaOrigen)
 
-  if (isLoading) return <DashboardLayout userName="Usuario"><FormSkeleton /></DashboardLayout>
+  if (isLoading) return <DashboardLayout userName={userName}><FormSkeleton /></DashboardLayout>
 
   return (
-    <DashboardLayout userName="Usuario">
+    <DashboardLayout userName={userName}>
       <div className="mx-auto max-w-lg space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 shadow-[0_0_20px_oklch(0.585_0.233_277/0.3)]">
